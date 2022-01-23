@@ -89,10 +89,18 @@ dt <- dt %>%
 
 # DA3 Assignment 1
 
-### Introduction
+### 1.Introduction
 
 This assignment presents earnings per hour of **this** occpuation for the ones who has more than associate degree or occupational /vocational 
 
+
+### 2. Data
+
+### 3. Regressions
+
+### 4. Performance of Models
+
+### 5. Summary
 ```{r}
 
 # Creating 5% and 95% 
@@ -200,16 +208,19 @@ cv_mat <- data.frame(rbind(cv1$resample[4], "Average"),
            rbind(cv1$resample[1], rmse_cv[1]),
            rbind(cv2$resample[1], rmse_cv[2]),
            rbind(cv3$resample[1], rmse_cv[3]),
-           rbind(cv4$resample[1], rmse_cv[4]),
-           rbind(cv5$resample[1], rmse_cv[5])
+           rbind(cv4$resample[1], rmse_cv[4])
            )
 
-colnames(cv_mat)<-c("Resample","Model1", "Model2", "Model3", "Model4", "Model5")
+colnames(cv_mat)<-c("Resample","Model1", "Model2", "Model3", "Model4")
 cv_mat 
 
-# Show model complexity and out-of-sample RMSE performance
+```
+
+
+```{r}
+# Model complexity and out-of-sample RMSE performance
 m_comp <- c()
-models <- c("reg1", "reg2", "reg3", "reg4", "reg5")
+models <- c("reg1", "reg2", "reg3", "reg4")
 for( i in 1 : length(cv) ){
   m_comp[ i ] <- length( get( models[i] )$coefficient  - 1 ) 
 }
@@ -224,9 +235,11 @@ ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
   labs(x='Number of explanatory variables',y='Averaged RMSE on test samples',
        title='Prediction performance and model compexity') +
   theme_bw()
-
-
 ```
 
 
+
+```{r}
+
+```
 
