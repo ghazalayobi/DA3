@@ -10,27 +10,111 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-# Libraries
+# Clearing the environment
 rm(list=ls())
+
+# Loading the Libraries
 library(tidyverse)
 library(modelsummary)
 library(fixest)
-library(dplyr)
 library(kableExtra)
 library(data.table)
 library(stargazer)
 library(estimatr)
-library(boot)
 library(ggplot2)
+library(GGally)
+
 
 ```
 
 
 ```{r}
-# Importing data
+# Importing the data
 data <- read_csv("https://osf.io/4ay9x/download")
-data <- data %>% filter(occ2012==800)
-data <-  data.table(data)
+
+
+# Filtering the data for the chosen occupation
+dt <- data %>% filter(occ2012==800)
+dt <-  data.table(dt)
+
+```
+
+```{r}
+library(dplyr)
+aggregate((count = data$occ2012), list(value = data$occ2012), length)
+
+aggregate((count = data$grade92), list(value = data$grade92), length)
+
+```
+
+
+```{r}
+# Creating new variable for earnings per hour and log of it
+dt <- dt %>% 
+  
+  # Create : Female dummy variable
+  mutate(female=as.numeric(sex==2)) %>% 
+  
+  # Create : hourly wage (earning per number of hours worked per week)
+  mutate(w = earnwke/uhours) %>%
+  
+  # Add : log of wage
+  mutate(lnw=log(w)) %>% 
+  
+  # Filter : Education is Bachelor's degree or higher
+  filter(grade92 >= 43) %>% 
+  
+  # Filter : Age is above 20 years old
+  filter(age>=20) %>% 
+  
+  # Filter : wage more than USD 1
+  filter(w>1) %>% 
+  
+  # Create : Education Dummies
+  mutate(
+  ed_Associate_voc=as.numeric(grade92==41),
+  ed_Associate_ap=as.numeric(grade92==42),
+  ed_BA=as.numeric(grade92==43),
+  ed_MA=as.numeric(grade92==44),
+  ed_Profess = as.numeric(grade92==45),
+  ed_PhD = as.numeric(grade92==46)) %>% 
+  mutate(
+    
+  # Create age squared
+    agesq=age^2
+  ) %>% 
+  mutate(privt_sec = as.numeric(class=="Private, Nonprofit" | class== "Private, For Profit"))
+
+```
+
+# DA3 Assignment 1
+
+### Introduction
+
+This assignment presents earnings per hour of **this** occpuation for the ones who has more than associate degree or occupational /vocational 
+
+```{r}
+
+# Creating 5% and 95% 
+P05 <- function(x){ quantile(x,.05,na.rm=T)}
+P95 <- function(x){ quantile(x,.95,na.rm=T)}
+
+datasummary(
+  (`Weekly earnings` = earnwke) + 
+  (`Weekly hours worked` = uhours) + 
+  (`Earning per hour` = w) + 
+  (`Female` = female) +
+  (`BA Degree` = ed_BA) + 
+  (`MA Degree` = ed_MA) + 
+  (`Professional Degree` = ed_Profess) + 
+  (`PhD` = ed_PhD) + 
+  (`Age` = age) + 
+  (`Work in Private Sector` = privt_sec) ~ (Mean + SD + Min + Max + Median + P95 + P05 + N), data = dt, title = "Descriptive Summary Statistics" )
+
+```
+
+
+```{r}
 
 ```
 
