@@ -34,7 +34,7 @@ data_org <- read_csv("https://osf.io/4ay9x/download")
 
 
 # Filtering the data for the chosen occupation
-dt <- data_org %>% filter(occ2012==800)
+dt <- data_org %>% filter(occ2012==630)
 dt <-  data.table(dt)
 
 ```
@@ -43,7 +43,7 @@ dt <-  data.table(dt)
 library(dplyr)
 aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
 
-aggregate((count = data_org$grade92), list(value = data$grade92), length)
+#aggregate((count = data_org$grade92), list(value = data$grade92), length)
 
 ```
 
@@ -249,6 +249,14 @@ ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
 
 
 ```{r}
+# Select Model 3
+
+###############
+# 5C) Prediction
+#   Compare model1 and model3 to predict our the hourly wage
+
+
+dt <- dt %>% select(grade92, age, female, w, ed_BA, ed_MA, ed_Profess, ed_PhD, agesq, privt_sec, child)
 
 ```
 
