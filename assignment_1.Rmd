@@ -19,11 +19,11 @@ library(modelsummary)
 library(fixest)
 library(kableExtra)
 library(data.table)
-library(stargazer)
-library(estimatr)
 library(ggplot2)
 library(GGally)
-
+library(viridis)
+library(caret)
+library(grid)
 
 ```
 
@@ -99,6 +99,7 @@ This assignment presents earnings per hour of **this** occpuation for the ones w
 P05 <- function(x){ quantile(x,.05,na.rm=T)}
 P95 <- function(x){ quantile(x,.95,na.rm=T)}
 
+# Data Summary
 datasummary(
   (`Weekly earnings` = earnwke) + 
   (`Weekly hours worked` = uhours) + 
@@ -109,12 +110,123 @@ datasummary(
   (`Professional Degree` = ed_Profess) + 
   (`PhD` = ed_PhD) + 
   (`Age` = age) + 
-  (`Work in Private Sector` = privt_sec) ~ (Mean + SD + Min + Max + Median + P95 + P05 + N), data = dt, title = "Descriptive Summary Statistics" )
+  (`Work in Private Sector` = privt_sec) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), data = dt, title = "Descriptive Summary Statistics" ) %>% kable_styling(latex_options = c("HOLD_position","scale_down"))
 
 ```
 
 
 ```{r}
+# Regressions
+# Simple Model one
+
+m1 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD)
+m2 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq)
+m3 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec)
+m4 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec)
+
+reg1 <- feols(m1, data = dt, vcov = 'hetero')
+reg2 <- feols(m2, data = dt, vcov = 'hetero')
+reg3 <- feols(m3, data = dt, vcov = 'hetero')
+
+# Complex Regression
+reg4 <- feols(m4, data = dt, vcov = 'hetero')
 
 ```
+
+```{r}
+
+# Adding variables names
+variable_names <- c('(Intercept)' = 'Intercept',
+                    'w' = 'Hourly wage',
+                    'ed_MA' = 'MA Degree',
+                    'ed_Profess' = 'Professional Degree',
+                    'ed_PhD' = 'PhD',
+                    'age' = 'Age',
+                    'agesq' = 'Age Squared',
+                    'female' = 'Female',
+                    'privt_sec' = 'Private Sector')
+```
+
+
+```{r}
+# evaluation of the models: using all the sample
+
+fitstat_register("k", function(x){length( x$coefficients ) - 1}, "No. Variables")
+
+etable( 'M1' = reg1 , 'M2' = reg2 , 'M3' = reg3 , 'M4' = reg4 , 
+        dict = variable_names,
+        fitstat = c('aic','bic','rmse','r2','n','k') )
+
+
+```
+
+```{r}
+
+# Simple k-fold cross validation setup:
+# set number of folds to use (must be less than the no. observations)
+k <- 4
+
+# Model 1
+set.seed(1238)
+cv1 <- train(m1, dt, method = "lm", trControl = trainControl(method = "cv", number = k))
+
+# Model 2
+set.seed(1238)
+cv2 <- train(m2, dt, method = "lm", trControl = trainControl(method = "cv", number = k))
+
+# Model 3
+set.seed(1238)
+cv3 <- train(m3, dt, method = "lm", trControl = trainControl(method = "cv", number = k))
+
+# Model 4
+set.seed(1238)
+cv4 <- train(m4, dt, method = "lm", trControl = trainControl(method = "cv", number = k))
+
+
+# Calculate RMSE for each fold and the average RMSE as well
+cv <- c("cv1", "cv2", "cv3", "cv4")
+rmse_cv <- c()
+
+for(i in 1:length(cv)){
+  rmse_cv[i] <- sqrt((get(cv[i])$resample[[1]][1]^2 +
+                       get(cv[i])$resample[[1]][2]^2 +
+                       get(cv[i])$resample[[1]][3]^2 +
+                       get(cv[i])$resample[[1]][4]^2)/4)
+}
+
+
+# summarize results
+cv_mat <- data.frame(rbind(cv1$resample[4], "Average"),
+           rbind(cv1$resample[1], rmse_cv[1]),
+           rbind(cv2$resample[1], rmse_cv[2]),
+           rbind(cv3$resample[1], rmse_cv[3]),
+           rbind(cv4$resample[1], rmse_cv[4]),
+           rbind(cv5$resample[1], rmse_cv[5])
+           )
+
+colnames(cv_mat)<-c("Resample","Model1", "Model2", "Model3", "Model4", "Model5")
+cv_mat 
+
+# Show model complexity and out-of-sample RMSE performance
+m_comp <- c()
+models <- c("reg1", "reg2", "reg3", "reg4", "reg5")
+for( i in 1 : length(cv) ){
+  m_comp[ i ] <- length( get( models[i] )$coefficient  - 1 ) 
+}
+
+m_comp <- tibble( model = models , 
+                  complexity = m_comp,
+                  RMSE = rmse_cv )
+
+ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
+  geom_point(color='red',size=2) +
+  geom_line(color='blue',size=0.5)+
+  labs(x='Number of explanatory variables',y='Averaged RMSE on test samples',
+       title='Prediction performance and model compexity') +
+  theme_bw()
+
+
+```
+
+
 
