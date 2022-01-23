@@ -30,20 +30,20 @@ library(grid)
 
 ```{r}
 # Importing the data
-data <- read_csv("https://osf.io/4ay9x/download")
+data_org <- read_csv("https://osf.io/4ay9x/download")
 
 
 # Filtering the data for the chosen occupation
-dt <- data %>% filter(occ2012==800)
+dt <- data_org %>% filter(occ2012==800)
 dt <-  data.table(dt)
 
 ```
 
 ```{r}
 library(dplyr)
-aggregate((count = data$occ2012), list(value = data$occ2012), length)
+aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
 
-aggregate((count = data$grade92), list(value = data$grade92), length)
+aggregate((count = data_org$grade92), list(value = data$grade92), length)
 
 ```
 
@@ -78,12 +78,15 @@ dt <- dt %>%
   ed_MA=as.numeric(grade92==44),
   ed_Profess = as.numeric(grade92==45),
   ed_PhD = as.numeric(grade92==46)) %>% 
-  mutate(
-    
-  # Create age squared
-    agesq=age^2
-  ) %>% 
-  mutate(privt_sec = as.numeric(class=="Private, Nonprofit" | class== "Private, For Profit"))
+  
+    # Create age squared
+  mutate(agesq=age^2) %>% 
+  
+  # Create Private Sector Dummy
+  mutate(privt_sec = as.numeric(class=="Private, Nonprofit" | class== "Private, For Profit")) %>% 
+  
+  # Create if individuals own child or no
+  mutate(child = as.numeric(ownchild >= 1))
 
 ```
 
@@ -100,6 +103,7 @@ This assignment presents earnings per hour of **this** occpuation for the ones w
 
 ### 4. Performance of Models
 
+### 5. Prediction 
 ### 5. Summary
 ```{r}
 
@@ -118,7 +122,11 @@ datasummary(
   (`Professional Degree` = ed_Profess) + 
   (`PhD` = ed_PhD) + 
   (`Age` = age) + 
-  (`Work in Private Sector` = privt_sec) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), data = dt, title = "Descriptive Summary Statistics" ) %>% kable_styling(latex_options = c("HOLD_position","scale_down"))
+  (`Work in Private Sector` = privt_sec) + 
+  (`Has child` = child) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), 
+  data = dt, 
+  title = "Descriptive Summary Statistics" ) %>% 
+  kable_styling(latex_options = c("HOLD_position","scale_down"))
 
 ```
 
@@ -129,8 +137,8 @@ datasummary(
 
 m1 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD)
 m2 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq)
-m3 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec)
-m4 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec)
+m3 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec, child)
+m4 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec + female * child)
 
 reg1 <- feols(m1, data = dt, vcov = 'hetero')
 reg2 <- feols(m2, data = dt, vcov = 'hetero')
@@ -152,7 +160,8 @@ variable_names <- c('(Intercept)' = 'Intercept',
                     'age' = 'Age',
                     'agesq' = 'Age Squared',
                     'female' = 'Female',
-                    'privt_sec' = 'Private Sector')
+                    'privt_sec' = 'Private Sector',
+                    'child' = 'Has Child')
 ```
 
 
