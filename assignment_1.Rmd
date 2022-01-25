@@ -107,7 +107,7 @@ datasummary(as.factor(sex) * ownchild ~ N, data = dt)
 dt <- dt %>% 
   mutate(child = as.numeric(ownchild >= 1))
 
-dt <- dt[grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional-School"][grade92 == 46, educ := "Doctorate degree"]
+dt <- dt[grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional"][grade92 == 46, educ := "Doctorate"]
 
 dt <- dt[sex == 1, gender := "Male"][sex == 2, gender := "Female"]
 
@@ -137,6 +137,14 @@ hist_w <- ggplot(data=dt, aes(x=w)) +
   scale_color_viridis(discrete = TRUE, option = "D") +
   scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
 
+
+boxplot_edu <- ggplot(dt, aes(x = educ, y = w, fill=factor(educ))) +
+  geom_boxplot(alpha=0.5, na.rm=T, outlier.shape = NA, width = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.5, size = 0.3, na.rm=T)+
+  labs(x = "Education Levels",y = "Wage per Hour in USD", fill = "Education") + theme_bw() + 
+  scale_fill_viridis(option = "D", discrete = TRUE) + 
+  theme_bw() +
+  theme(legend.position = "top")
 
 ```
 
