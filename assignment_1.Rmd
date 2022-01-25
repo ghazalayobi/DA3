@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # Clearing the environment
 rm(list=ls())
 
@@ -32,7 +32,7 @@ library(viridis)
 ```
 
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # Importing the data
 data_org <- read_csv("https://osf.io/4ay9x/download")
 
@@ -43,7 +43,7 @@ dt <-  data.table(dt)
 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # Counting the number of observations in each occupation
 aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
 
@@ -51,7 +51,7 @@ aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
 ```
 
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # Creating new variable for earnings per hour and log of it
 dt <- dt %>% 
   
@@ -107,67 +107,172 @@ datasummary(as.factor(sex) * ownchild ~ N, data = dt)
 dt <- dt %>% 
   mutate(child = as.numeric(ownchild >= 1))
 
-dt <- dt[grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional"][grade92 == 46, educ := "Doctorate"]
+dt <- dt[grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional"][grade92 == 46, educ := "PhD"]
 
 dt <- dt[sex == 1, gender := "Male"][sex == 2, gender := "Female"]
 
 
-datasummary(as.factor(gender) ~ N, data = dt)
+
+datasummary(as.factor(grade92)*as.factor(sex) ~ N, data = dt)
 # Checking race summary
 datasummary(as.factor(race) ~ N, data = dt)
 
 # Checking race summary
 datasummary(as.factor(marital) ~ N, data = dt)
 
+# Add new variable for marital status, if married then 1 else 0
+dt$marital_status <- ifelse(dt$marital <= 3, 1, 0)
+
 ```
 
-```{r}
-hist_age <- ggplot(data=dt, aes(x=age)) +
-  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#3b528b", color = "white", size = 0.2, alpha = 0.8,  show.legend=F, na.rm=TRUE) +
-  labs(x = "Age",y = "Percent")+
+```{r include=FALSE}
+
+# Figures are put in the Appendix
+
+# Male hourly wage histogram
+hist_w_m <- ggplot(data=dt[sex == 1], aes(x=w)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#440154", color = "white", size = 0.2, alpha = 0.5,  show.legend=F, na.rm=TRUE) +
+  labs(x = "Male Hourly Wage",y = "Percent")+
+  theme_bw() +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
+
+# Female hourly wage histogram
+hist_w_f <- ggplot(data=dt[sex == 2], aes(x=w)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#440154", color = "white", size = 0.2, alpha = 0.5,  show.legend=F, na.rm=TRUE) +
+  labs(x = "Female Hourly Wage",y = "Percent")+
+  theme_bw() +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
+
+# Male age histogram
+
+hist_age_m <- ggplot(data=dt[sex == 1], aes(x=age)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#440154", color = "white", size = 0.2, alpha = 0.5,  show.legend=F, na.rm=TRUE) +
+  labs(x = "Male Age Distribution",y = "Percent") +
   theme_bw() +
   scale_color_viridis(discrete = TRUE, option = "D") +
   scale_x_continuous(breaks = seq(15,70, 5)) +
-  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
+  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1)) 
 
-hist_w <- ggplot(data=dt, aes(x=w)) +
-  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#3b528b", color = "white", size = 0.2, alpha = 0.8,  show.legend=F, na.rm=TRUE) +
-  labs(x = "Hourly Wage",y = "Percent")+
+# Female age historam
+hist_age_f <- ggplot(data=dt[sex == 2], aes(x=age)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#440154", color = "white", size = 0.2, alpha = 0.5,  show.legend=F, na.rm=TRUE) +
+  labs(x = "Female Age Distribution",y = "Percent") +
   theme_bw() +
   scale_color_viridis(discrete = TRUE, option = "D") +
-  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
+  scale_x_continuous(breaks = seq(15,70, 5)) +
+  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1)) 
 
 
-boxplot_edu <- ggplot(dt, aes(x = educ, y = w, fill=factor(educ))) +
-  geom_boxplot(alpha=0.5, na.rm=T, outlier.shape = NA, width = 0.8) +
-  stat_boxplot(geom = "errorbar", width = 0.5, size = 0.3, na.rm=T)+
-  labs(x = "Education Levels",y = "Wage per Hour in USD", fill = "Education") + theme_bw() + 
-  scale_fill_viridis(option = "D", discrete = TRUE) + 
+# Box plot of hourly wage for each gender
+jitter_gender <- ggplot(dt,aes(factor(gender), w, color = "#440154" )) + 
+  geom_boxplot(alpha = 0.1, frame = FALSE) + 
+  geom_jitter(height = 0, width = 0.1, alpha = 0.2) +
+  scale_color_viridis(option = "D", discrete = TRUE)+
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Gender", y = "Hourly Wage")
+
+# Box plot of hourly wage for levels of education
+jitter_edu <- ggplot(dt,aes(factor(grade92), w, color = "#440154" )) + 
+  geom_boxplot(alpha = 0.1, frame = FALSE) + 
+  geom_jitter(height = 0, width = 0.1, alpha = 0.2) +
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Education", y = "Hourly Wage") + 
+  scale_x_discrete(labels = c("Bachelors", "Masters", "Professional", "PhD"))
+
+# Box plot of hourly wage for work sector
+jitter_class <- ggplot(dt,aes(factor(class), w, color = "#440154" )) + 
+  geom_boxplot(alpha = 0.1, frame = FALSE) + 
+  geom_jitter(height = 0, width = 0.1, alpha = 0.2) +
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  theme_bw()+
+  theme(legend.position = "none", axis.text.x = element_text(angle= 45, vjust=.5)) +
+  labs(x = "Working Sector", y = "Hourly Wage")
+
+# Box plot for hourly wage if the individual has a child or no
+jitter_child <- ggplot(dt,aes(factor(child), w, color = "#440154" )) + 
+  geom_boxplot(alpha = 0.1, frame = FALSE) + 
+  geom_jitter(height = 0, width = 0.1, alpha = 0.2) +
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_x_discrete(labels = c("No", "Yes")) +
+  labs(x = "Child", y = "Hourly Wage")
+
+
+
+
+
+boxplot_edu_gender <- ggplot(dt, aes(x = grade92, y = w, fill = factor(gender), color=factor(gender))) +
+  geom_boxplot(alpha=0.6, na.rm=T, outlier.shape = NA, width = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  labs(x = "Education Levels",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
+  theme_bw() +
+  theme(legend.position = "top") +
+  scale_x_discrete(labels = c("Bachelors", "Masters", "Professional", "PhD"))
+
+
+boxplot_child_gender <- ggplot(dt, aes(x = factor(child), y = w, fill = factor(gender), color=factor(gender))) +
+  geom_boxplot(alpha=0.6, na.rm=T, outlier.shape = NA, width = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  labs(x = "Child",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
+  theme_bw() +
+  theme(legend.position = "top") +
+  scale_x_discrete(labels = c("No", "Yes"))
+
+
+boxplot_class_gender <- ggplot(dt, aes(x = factor(class), y = w, fill = factor(gender), color=factor(gender))) +
+  geom_boxplot(alpha=0.6, na.rm=T, outlier.shape = NA, width = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  labs(x = "Working Sector",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
   theme_bw() +
   theme(legend.position = "top")
 
-```
 
-
-
-```{r}
-# Plots
-
-white_gender <- ggplot(dt, aes(x = factor(white), y = w,
-                              fill = factor(gender), color=factor(gender))) +
-  geom_boxplot(alpha=0.8, na.rm=T, outlier.shape = NA, width = 0.8) +
+boxplot_married_gender <- ggplot(dt, aes(x = factor(marital_status), y = w, fill = factor(gender), color=factor(gender))) +
+  geom_boxplot(alpha=0.6, na.rm=T, outlier.shape = NA, width = 0.8) +
   stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
-  scale_color_manual(name="",
-                     values=c('red','blue')) +
-  scale_fill_manual(name="",
-                    values=c('red','blue')) +
-  labs(x = "Race",y = "Wage per Hour (USD)")+
-  scale_y_continuous(expand = c(0.01,0.01), limits=c(0, 70), breaks = seq(0,70, 10))+
-  ggthemes::theme_economist() +
-  theme(legend.position = c(0.15,0.85), axis.text.x = element_text(angle=45, vjust=.5))
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  labs(x = "Working Sector",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
+  theme_bw() +
+  theme(legend.position = "top")
+
+scatter_age <- ggplot( dt , aes(x = age, y = w)) +
+    geom_point(size=0.5,alpha=0.6, na.rm = T, color = "#440154") +
+    geom_smooth(method="loess" , formula = y ~ x , na.rm = T )+
+    theme_bw() +
+    scale_color_viridis(option = "D", discrete = TRUE) +
+    scale_fill_viridis(option = "D", discrete = TRUE) +
+    labs(x = "Age",y = "Wage per Hour in USD", color = "Gender", fill = "Gender")
+
+
+scatter_edu <- ggplot( dt , aes(x = grade92, y = w)) +
+  geom_point(size=0.9, alpha=0.8, na.rm = T, color = "#440154") +
+  geom_smooth(method="lm" , formula = y ~ x , na.rm = T)+
+  theme_bw() +
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  labs(x = "Education Levels",y = "Wage per Hour in USD") +
+  scale_x_continuous(labels = c("Bachelors", "Masters", "Professional", "PhD"))
 
 
 ```
+
 
 # DA3 Assignment 1
 
@@ -184,14 +289,14 @@ This assignment presents earnings per hour of **this** occpuation for the ones w
 
 ### 5. Prediction 
 ### 5. Summary
-```{r}
+```{r include=FALSE}
 
 # Creating 5% and 95% 
 P05 <- function(x){ quantile(x,.05,na.rm=T)}
 P95 <- function(x){ quantile(x,.95,na.rm=T)}
 
 # Data Summary
-datasummary(
+summary_table <- datasummary(
   (`Weekly earnings` = earnwke) + 
   (`Weekly hours worked` = uhours) + 
   (`Earning per hour` = w) + 
@@ -210,7 +315,7 @@ datasummary(
 ```
 
 
-```{r}
+```{r include=FALSE}
 # Regressions
 # Simple Model one
 
@@ -228,7 +333,7 @@ reg4 <- feols(m4, data = dt, vcov = 'hetero')
 
 ```
 
-```{r}
+```{r include=FALSE}
 
 # Adding variables names
 variable_names <- c('(Intercept)' = 'Intercept',
@@ -244,7 +349,7 @@ variable_names <- c('(Intercept)' = 'Intercept',
 ```
 
 
-```{r}
+```{r echo=FALSE}
 # evaluation of the models: using all the sample
 
 fitstat_register("k", function(x){length( x$coefficients ) - 1}, "No. Variables")
@@ -256,7 +361,7 @@ etable( 'M1' = reg1 , 'M2' = reg2 , 'M3' = reg3 , 'M4' = reg4 ,
 
 ```
 
-```{r}
+```{r include=FALSE}
 
 # Simple k-fold cross validation setup:
 # set number of folds to use (must be less than the no. observations)
@@ -305,7 +410,7 @@ cv_mat
 ```
 
 
-```{r}
+```{r echo=FALSE}
 # Model complexity and out-of-sample RMSE performance
 m_comp <- c()
 models <- c("reg1", "reg2", "reg3", "reg4")
@@ -336,6 +441,62 @@ ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
 
 
 dt <- dt %>% select(grade92, age, female, w, ed_BA, ed_MA, ed_Profess, ed_PhD, agesq, privt_sec, child)
+
+```
+
+
+\newpage
+### Appendix
+### Descriptive Data Summary
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Descriptive Data Summary
+summary_table
+
+```
+
+
+\newpage
+### Histograms
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=8, fig.width=8}
+
+# Histograms
+
+grid.arrange( grobs = list(hist_w_f, hist_w_m, hist_age_f, hist_age_m), ncol = 2)
+
+```
+
+
+\newpage
+### Boxplots
+
+
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=8, fig.width=8}
+
+grid.arrange( grobs = list(jitter_gender, jitter_child, jitter_edu, jitter_class ), ncol = 2)
+
+```
+
+
+```{r echo=FALSE}
+#grid.arrange(boxplot_edu, boxplot_edu_gender, ncol = 2)
+
+```
+
+
+```{r echo=FALSE}
+
+#grid.arrange(scatter_age, scatter_edu, ncol = 2)
+
+
+
+
+
+
+
 
 ```
 
