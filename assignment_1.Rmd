@@ -130,6 +130,13 @@ hist_age <- ggplot(data=dt, aes(x=age)) +
   scale_x_continuous(breaks = seq(15,70, 5)) +
   scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
 
+hist_w <- ggplot(data=dt, aes(x=w)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#3b528b", color = "white", size = 0.2, alpha = 0.8,  show.legend=F, na.rm=TRUE) +
+  labs(x = "Hourly Wage",y = "Percent")+
+  theme_bw() +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
+
 
 ```
 
