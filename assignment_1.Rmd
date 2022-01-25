@@ -45,7 +45,7 @@ dt <-  data.table(dt)
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Counting the number of observations in each occupation
-aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
+#aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
 
 
 ```
@@ -239,7 +239,8 @@ boxplot_class_gender <- ggplot(dt, aes(x = factor(class), y = w, fill = factor(g
   scale_fill_viridis(option = "D", discrete = TRUE) +
   labs(x = "Working Sector",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
   theme_bw() +
-  theme(legend.position = "top", axis.text.x = element_text(angle= 45, vjust=.5))
+  theme(legend.position = "top", axis.text.x = element_text(angle= 45, vjust=.5))  +
+  scale_x_discrete(labels = c("Gov-", "Yes"))
 
 # Box plot of hourly wage for marital status per gender
 boxplot_married_gender <- ggplot(dt, aes(x = factor(marital_status), y = w, fill = factor(gender), color=factor(gender))) +
