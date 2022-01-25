@@ -24,6 +24,10 @@ library(GGally)
 library(viridis)
 library(caret)
 library(grid)
+library(dplyr)
+library(gridExtra)
+library(grid)
+library(viridis)
 
 ```
 
@@ -40,10 +44,9 @@ dt <-  data.table(dt)
 ```
 
 ```{r}
-library(dplyr)
+# Counting the number of observations in each occupation
 aggregate((count = data_org$occ2012), list(value = data_org$occ2012), length)
 
-#aggregate((count = data_org$grade92), list(value = data$grade92), length)
 
 ```
 
@@ -77,16 +80,77 @@ dt <- dt %>%
   ed_BA=as.numeric(grade92==43),
   ed_MA=as.numeric(grade92==44),
   ed_Profess = as.numeric(grade92==45),
-  ed_PhD = as.numeric(grade92==46)) %>% 
-  
+  ed_PhD = as.numeric(grade92==46))
+
+
+# Looking for education data summary
+datasummary(w + as.factor(grade92) ~ N + Percent(), data = dt)
+
+
+
+# Looking for calss data summary
+datasummary(w + as.factor(class) ~ N + Percent(), data = dt)  
+
+
     # Create age squared
-  mutate(agesq=age^2) %>% 
+dt <-  dt %>% mutate(agesq=age^2) %>% 
   
   # Create Private Sector Dummy
-  mutate(privt_sec = as.numeric(class=="Private, Nonprofit" | class== "Private, For Profit")) %>% 
-  
+  mutate(privt_sec = as.numeric(class=="Private, Nonprofit" | class== "Private, For Profit"))
+
+
+# Looking for children data summary
+datasummary(as.factor(sex) * ownchild ~ N, data = dt)
+
   # Create if individuals own child or no
+
+dt <- dt %>% 
   mutate(child = as.numeric(ownchild >= 1))
+
+dt <- dt[grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional-School"][grade92 == 46, educ := "Doctorate degree"]
+
+dt <- dt[sex == 1, gender := "Male"][sex == 2, gender := "Female"]
+
+
+datasummary(as.factor(gender) ~ N, data = dt)
+# Checking race summary
+datasummary(as.factor(race) ~ N, data = dt)
+
+# Checking race summary
+datasummary(as.factor(marital) ~ N, data = dt)
+
+```
+
+```{r}
+hist_age <- ggplot(data=dt, aes(x=age)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 5, boundary=0, fill = "#3b528b", color = "white", size = 0.2, alpha = 0.8,  show.legend=F, na.rm=TRUE) +
+  labs(x = "Age",y = "Percent")+
+  theme_bw() +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  scale_x_continuous(breaks = seq(15,70, 5)) +
+  scale_y_continuous(expand = c(0.01,0.01),labels = scales::percent_format(accuracy = 1))
+
+
+```
+
+
+
+```{r}
+# Plots
+
+white_gender <- ggplot(dt, aes(x = factor(white), y = w,
+                              fill = factor(gender), color=factor(gender))) +
+  geom_boxplot(alpha=0.8, na.rm=T, outlier.shape = NA, width = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
+  scale_color_manual(name="",
+                     values=c('red','blue')) +
+  scale_fill_manual(name="",
+                    values=c('red','blue')) +
+  labs(x = "Race",y = "Wage per Hour (USD)")+
+  scale_y_continuous(expand = c(0.01,0.01), limits=c(0, 70), breaks = seq(0,70, 10))+
+  ggthemes::theme_economist() +
+  theme(legend.position = c(0.15,0.85), axis.text.x = element_text(angle=45, vjust=.5))
+
 
 ```
 
