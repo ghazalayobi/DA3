@@ -372,7 +372,7 @@ scatter_edu <- ggplot( dt[grade92 != 38] , aes(x = grade92, y = w)) +
 
 ### 1.Introduction
 
-The purpose of this assignment is to build four predictive models using linear regression. The source of data for this purpose is CPS-earning data set which can be found [here](https://osf.io/g8p9j/). The chosen occupation for this project is _Human Resource worker_ with the census occupation code of _630_ which has 701 observations.
+The purpose of this assignment is to build four predictive models using linear regression. The source of data for this purpose is CPS-earning data set which can be found [here](https://osf.io/g8p9j/). The chosen occupation for this project is _Human Resource worker_ with the census occupation code of _630_ which has 701 observations. GitHub link can be found [here](https://github.com/ghazalayobi/DA3).
 
 ### 2. Data Munging and Transformation 
 
