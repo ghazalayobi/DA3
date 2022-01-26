@@ -1,7 +1,11 @@
 ---
-title: "Assignment 1"
+title: "Data Analysis 3 : Assignment 1"
 author: "Ghazal"
-output: pdf_document
+geometry : margin=1.8cm
+fontsize: 10pt
+output: 
+  pdf_document:
+  extra_dependencies: ["flafter"]
 ---
 
 ```{r setup, include=FALSE}
@@ -67,7 +71,7 @@ dt <- dt %>%
   # Add : log of wage
   mutate(lnw=log(w)) %>% 
   
-  # Filter : Education is Bachelor's degree or higher
+  # Filter : Education is School's degree or higher
   filter(grade92 >= 38) %>% 
   
   # Filter : Age is above 20 years old
@@ -88,12 +92,12 @@ dt <- dt %>%
 dt <- dt[grade92 <= 40, educ := "No Degree"][grade92==41 | grade92==42, educ := "Associate" ][grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional"][grade92 == 46, educ := "PhD"]
 
 # Looking for education data summary
-datasummary(w * as.factor(educ) ~ N + Percent() + mean, data = dt)
+sum1 <- datasummary(w * (`Education` = as.factor(educ)) ~ N + Percent() + mean, data = dt, title = "Wage and education summary")
 
 
 
 # Looking for calss data summary
-datasummary(w*as.factor(class) ~ N + Percent() + mean, data = dt)  
+sum2 <- datasummary(w* (`class` = as.factor(class)) ~ N + Percent() + mean, data = dt, title = "Wage and class summary")  
 
 
     # Create age squared
@@ -114,16 +118,19 @@ dt <- dt %>%
   mutate(child = as.numeric(ownchild >= 1))
 
 # Looking for hourly wage of individuals with children and without children data summary
-datasummary(w * factor(child) ~ N +Percent() + mean, data = dt)
+sum3 <- datasummary(w * (`Own a child` = factor(child)) ~ N +Percent() + mean, data = dt, title = "Wage and Own a child summary")
 
 
 dt <- dt[sex == 1, gender := "Male"][sex == 2, gender := "Female"]
 
+# Looking for male and female data summary
+sum4 <- datasummary(w*(`Gender` = as.factor(gender)) ~ N + Percent() + mean, data = dt, title = "Wage and Gender summary")
+
 # Looking for data summary of individuals per each gender with children
-datasummary(w * as.factor(gender) * factor(child) ~ N + Percent() + mean, data = dt)
+sum5 <- datasummary(w * (`Gender` = as.factor(gender)) * (`Own a child` = factor(child)) ~ N + Percent() + mean, data = dt, title = "Wage, Gender and own a child summary")
 
 # Checking hourly wage education level and gender data summary
-datasummary(w* as.factor(educ)*as.factor(gender) ~ N + Percent() + mean, data = dt)
+sum6 <- datasummary(w* (`Education` = as.factor(educ))* (`Gender` = as.factor(gender)) ~ N + Percent() + mean, data = dt, title = "Wage, education and Gender summary")
 
 # Checking race summary
 datasummary(as.factor(race) ~ N, data = dt)
@@ -134,8 +141,10 @@ datasummary(as.factor(marital) ~ N, data = dt)
 # Add new variable for marital status, if married then 1 else 0
 dt$marital_status <- ifelse(dt$marital <= 3, 1, 0)
 
-datasummary(w* as.factor(educ)*as.factor(gender) ~ N + Percent() + mean, data = dt)
+sum7 <- datasummary(w* (`Married` = factor(marital_status)) ~ N + Percent() + mean, data = dt, title = "Wage and Marital status summary")
+sum8 <- datasummary(w* (`Education` = as.factor(educ))*(`Married` = as.factor(marital_status)) ~ N + Percent() + mean, data = dt, title = "Wage, education and marital status summary")
 
+sum9 <- datasummary(w* (`Gender` = as.factor(gender))*(`Married` = as.factor(marital_status)) ~ N + Percent() + mean, data = dt, title = "Wage, gender and marital status summary")
 ```
 
 
@@ -358,19 +367,23 @@ scatter_edu <- ggplot( dt[grade92 != 38] , aes(x = grade92, y = w)) +
 ```
 
 
-# DA3 Assignment 1
-
 ### 1.Introduction
 
-The purpose of this assignment is to build four predictive models using linear regression. The source of data for this purpose is CPS-earning data set which can be found [here](https://osf.io/g8p9j/). The chosen occupation for this project is _Human Resource worker_ with the census occupation code of _630_. 
+The purpose of this assignment is to build four predictive models using linear regression. The source of data for this purpose is CPS-earning data set which can be found [here](https://osf.io/g8p9j/). The chosen occupation for this project is _Human Resource worker_ with the census occupation code of _630_ which has 701 observations.
 
-### 2. Data
+### 2. Data Munging and Transformation 
 
+Predicting the weekly earning is a quantitative prediction exercise. For the process of data munging and transformation, hourly wage_**(w)**_ is calculated by dividing the weekly earnings (earnwke) by the number of hours (uhours) and the log of the mentioned variable _**(lnw)**_ is also created. To model other variables are created and transformed which are as following: education level, marital status, if an individual owns a child, working sector dummies are created. Other character variables such as Gender and education levels are created. To model non-linearity in age for the regression with earning per week as a dependent variable, quadratic age predictor is created. The sample is varied with high number of females (521) compared to men (180). 
+For further data filtering process, education is included from high school to PhD. The education levels below college are added into _Non-degree_ category, and both associate certificates of vocational and academic are added to _associate_. The data contains observation who are 18 years old or above and less than 64 years. Moreover, the selected data set is transformed to observations who earns more than one USD per week. 
 
+### 3. Variables, Interations, and Regressions
 
-### 3. Regressions
+**Variables :** Education is likely a strong predictor of earning per hour. Table 3, in the appendix indicates that the mean difference between of a human resource worker with no degree to a human resource worker who holds a PhD degree is 27 USD. Moreover, other variables such as age and age square are added to the predication models. Gender plays an important role, Table 6 shows that female human resource workers earn 4 USD than their male counterparts. Moreover, a binary variable capturing if human resource worker is married or otherwise, indicates interesting summary in the Appendix Table 9. It shows that married human resource workers earn more than the otherwise. 
+**Interactions :** To further capture the interplay of dependent variables, interactions are used. Interactions such as gender and education, marital status and gender, gender, owning a child and education are used to understand the interplay of dependent variables. **Regressions :** Four linear regression models are built to prediction analysis. As Table 1, in the appendix shows, Model 1 is the simplest containing education dummies, as following Model 2 has the Model 1 explanatory variables along with age and age squared. Moreover, in the Model 3, more explanatory variables such as gender, working sector, marital status, and own-child are added. Model 4, is the most complex among all model. This mentioned model contains all the mentioned independent variables and the respective interactions.  
 
 ### 4. Performance of Models
+
+
 
 ### 5. Prediction 
 ### 5. Summary
@@ -395,7 +408,7 @@ summary_table <- datasummary(
   (`Age` = age) + 
   (`Work in Private Sector` = privt_sec) + 
   (`Has child` = child) +
- (`Marital Status` = marital_status) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), 
+  (`Marital Status` = marital_status) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), 
   data = dt, 
   title = "Descriptive Summary Statistics" ) %>% 
   kable_styling(latex_options = c("HOLD_position","scale_down"))
@@ -410,9 +423,9 @@ summary_table <- datasummary(
 m1 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD)
 m2 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq)
 
-m3 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + child + marital_status)
+m3 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + gender + class + child + marital_status)
 
-m4 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + marital_status + ed_associate *female  + female * ed_BA +  + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec + female * child)
+m4 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + class + marital_status + ed_associate *female  + female * ed_BA + female * ed_MA + female * child * educ)
 
 reg1 <- feols(m1, data = dt, vcov = 'hetero')
 reg2 <- feols(m2, data = dt, vcov = 'hetero')
@@ -442,16 +455,12 @@ variable_names <- c('(Intercept)' = 'Intercept',
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.align='right', show.fig = 'hold'}
 # evaluation of the models: using all the sample
 
+
 fitstat_register("k", function(x){length( x$coefficients ) - 1}, "No. Variables")
-
-etable( 'M1' = reg1 , 'M2' = reg2 , 'M3' = reg3 , 'M4' = reg4 , 
-        dict = variable_names, title = 'Regression Models for Earning per hour',
-        fitstat = c('aic','bic','rmse','r2','n','k') ) %>% kbl(booktabs = T) %>% kable_styling(full_width = T)
-
-
+etable( 'M1' = reg1 , 'M2' = reg2 , 'M3' = reg3 , 'M4' = reg4, dict = variable_names , fitstat = c('aic','bic','rmse','r2','n','k') ) %>% kbl(caption = "Regression Models for Earning per hour", booktabs = T) %>% kable_styling(full_width = T)
 ```
 
 ```{r include=FALSE}
@@ -498,9 +507,10 @@ cv_mat <- data.frame(rbind(cv1$resample[4], "Average"),
            )
 
 colnames(cv_mat)<-c("Resample","Model1", "Model2", "Model3", "Model4")
-cv_mat 
+cv_mat %>% kbl(caption = "4-Fold cross Validation and RMSE", booktabs = T) %>% kable_styling(full_width = T)
 
 ```
+
 
 
 ```{r echo=FALSE}
@@ -515,12 +525,14 @@ m_comp <- tibble( model = models ,
                   complexity = m_comp,
                   RMSE = rmse_cv )
 
-ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
+model_performance <- ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
   geom_point(color='red',size=2) +
   geom_line(color= "#440154",size=0.5)+
   labs(x='Number of explanatory variables',y='Averaged RMSE on test samples',
        title='Prediction performance and model compexity') +
   theme_bw()
+
+
 ```
 
 
@@ -531,10 +543,12 @@ ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
 ### Appendix
 ### Descriptive Data Summary
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, show.fig = "hold", fig.align = "center"}
 
 # Descriptive Data Summary
 summary_table
+cv_mat
+model_performance
 
 ```
 
@@ -542,7 +556,7 @@ summary_table
 \newpage
 ### Histograms
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=9, fig.width=8}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=8, fig.width=8}
 
 # Histograms
 
@@ -556,27 +570,69 @@ grid.arrange( grobs = list(hist_w, hist_w_ln, hist_w_f, hist_w_m, hist_age_f, hi
 
 
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=9, fig.width=8}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=8, fig.width=8}
 
-grid.arrange( grobs = list(jitter_gender, jitter_child, jitter_edu, jitter_married, jitter_class ), ncol = 2)
+grid.arrange( grobs = list(jitter_gender, jitter_child, jitter_edu, jitter_married), ncol = 2)
 
 ```
+
+\newpage
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+jitter_class
+
+```
+
+
 
 \newpage
 ### Two Variable plots
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=10, fig.width=8}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.height=8, fig.width=8}
 
-grid.arrange( grobs = list(boxplot_edu_gender, boxplot_married_gender, boxplot_edu_married, boxplot_child_gender, boxplot_class_gender), ncol = 2)
+grid.arrange( grobs = list(boxplot_edu_gender, boxplot_married_gender, boxplot_edu_married, boxplot_child_gender), ncol = 2)
 
 ```
 
 \newpage
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+boxplot_class_gender
+```
+
+
+\newpage
 ### Loess
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, show.fig = "hold"}
 
 grid.arrange( grobs = list(scatter_edu, scatter_age), ncol = 2)
 
 ```
+
+\newpage
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, show.fig = "hold", fig.align = "center"}
+
+# Descriptive summary of the main variables in our dataset can be found Table 2. From the table we infer that because of the presence of high hourly wage _**(w)**_ values like USD 346 per hour, mean tends to be to the right of the median thus making the sample distribution rightly skewed. Similarly, we see that there are certain people who work more than 40 hours (maximum value of 92 hours a week) which is also the cause for skewness. Moreover, there is also the presence of extreme values. For example, the minimum wage value is computed out to be USD 0.01 which is highly unlikely in USA thus we excluded  the data points for wage value below USD 1. 
+
+sum1
+sum2
+sum3
+sum4
+sum5
+sum6
+sum7
+sum8
+sum9
+```
+
+
+
+
+
+
+
+
 
