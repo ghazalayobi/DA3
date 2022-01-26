@@ -52,6 +52,9 @@ dt <-  data.table(dt)
 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
+
+
+
 # Creating new variable for earnings per hour and log of it
 dt <- dt %>% 
   
@@ -65,31 +68,32 @@ dt <- dt %>%
   mutate(lnw=log(w)) %>% 
   
   # Filter : Education is Bachelor's degree or higher
-  filter(grade92 >= 43) %>% 
+  filter(grade92 >= 38) %>% 
   
   # Filter : Age is above 20 years old
-  filter(age>=20) %>% 
+  filter(age>=18) %>% 
   
   # Filter : wage more than USD 1
   filter(w>1) %>% 
   
   # Create : Education Dummies
   mutate(
-  ed_Associate_voc=as.numeric(grade92==41),
-  ed_Associate_ap=as.numeric(grade92==42),
+  no_degree=as.numeric(grade92<=40),
+  ed_associate=as.numeric(grade92==41 |grade92==42) ,
   ed_BA=as.numeric(grade92==43),
   ed_MA=as.numeric(grade92==44),
   ed_Profess = as.numeric(grade92==45),
   ed_PhD = as.numeric(grade92==46))
 
+dt <- dt[grade92 <= 40, educ := "No Degree"][grade92==41 | grade92==42, educ := "Associate" ][grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional"][grade92 == 46, educ := "PhD"]
 
 # Looking for education data summary
-datasummary(w + as.factor(grade92) ~ N + Percent(), data = dt)
+datasummary(w * as.factor(educ) ~ N + Percent() + mean, data = dt)
 
 
 
 # Looking for calss data summary
-datasummary(w + as.factor(class) ~ N + Percent(), data = dt)  
+datasummary(w*as.factor(class) ~ N + Percent() + mean, data = dt)  
 
 
     # Create age squared
@@ -99,21 +103,28 @@ dt <-  dt %>% mutate(agesq=age^2) %>%
   mutate(privt_sec = as.numeric(class=="Private, Nonprofit" | class== "Private, For Profit"))
 
 
-# Looking for children data summary
-datasummary(as.factor(sex) * ownchild ~ N, data = dt)
+
+# Looking for male and female data summary
+datasummary(w*factor(sex) ~ N + Percent() + mean, data = dt)
+
 
   # Create if individuals own child or no
 
 dt <- dt %>% 
   mutate(child = as.numeric(ownchild >= 1))
 
-dt <- dt[grade92 == 43, educ := "Bachelors"][grade92 == 44, educ := "Masters"][grade92 == 45, educ := "Professional"][grade92 == 46, educ := "PhD"]
+# Looking for hourly wage of individuals with children and without children data summary
+datasummary(w * factor(child) ~ N +Percent() + mean, data = dt)
+
 
 dt <- dt[sex == 1, gender := "Male"][sex == 2, gender := "Female"]
 
+# Looking for data summary of individuals per each gender with children
+datasummary(w * as.factor(gender) * factor(child) ~ N + Percent() + mean, data = dt)
 
+# Checking hourly wage education level and gender data summary
+datasummary(w* as.factor(educ)*as.factor(gender) ~ N + Percent() + mean, data = dt)
 
-datasummary(as.factor(grade92)*as.factor(sex) ~ N, data = dt)
 # Checking race summary
 datasummary(as.factor(race) ~ N, data = dt)
 
@@ -123,7 +134,12 @@ datasummary(as.factor(marital) ~ N, data = dt)
 # Add new variable for marital status, if married then 1 else 0
 dt$marital_status <- ifelse(dt$marital <= 3, 1, 0)
 
+datasummary(w* as.factor(educ)*as.factor(gender) ~ N + Percent() + mean, data = dt)
+
 ```
+
+
+
 
 ```{r include=FALSE}
 
@@ -207,10 +223,31 @@ jitter_child <- ggplot(dt,aes(factor(child), w, color = "#440154" )) +
   scale_x_discrete(labels = c("No", "Yes")) +
   labs(x = "Child", y = "Hourly Wage")
 
+# Box plot for hourly wage if the individual is married or not
+jitter_married <- ggplot(dt,aes(factor(marital_status), w, color = "#440154" )) + 
+  geom_boxplot(alpha = 0.1, frame = FALSE) + 
+  geom_jitter(height = 0, width = 0.1, alpha = 0.2) +
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_x_discrete(labels = c("No", "Yes")) +
+  labs(x = "Married", y = "Hourly Wage")
 
 # Two variables boxplots
 # Box plot of hourly wage for education level per gender 
 boxplot_edu_gender <- ggplot(dt, aes(x = factor(grade92), y = w, fill = factor(gender), color=factor(gender))) +
+  geom_boxplot(alpha=0.6, na.rm=T, outlier.shape = NA, width = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
+  scale_color_viridis(option = "D", discrete = TRUE) +
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  labs(x = "Education Levels",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
+  theme_bw() +
+  theme(legend.position = "top") +
+  scale_x_discrete(labels = c("Bachelors", "Masters", "Professional", "PhD"))
+
+# Box plot of hourly wage for education level per gender 
+boxplot_edu_married <- ggplot(dt, aes(x = factor(grade92), y = w, fill = factor(gender), color=factor(gender))) +
   geom_boxplot(alpha=0.6, na.rm=T, outlier.shape = NA, width = 0.8) +
   stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
   scale_color_viridis(option = "D", discrete = TRUE) +
@@ -239,8 +276,7 @@ boxplot_class_gender <- ggplot(dt, aes(x = factor(class), y = w, fill = factor(g
   scale_fill_viridis(option = "D", discrete = TRUE) +
   labs(x = "Working Sector",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
   theme_bw() +
-  theme(legend.position = "top", axis.text.x = element_text(angle= 45, vjust=.5))  +
-  scale_x_discrete(labels = c("Gov-", "Yes"))
+  theme(legend.position = "top", axis.text.x = element_text(angle= 45, vjust=.5))
 
 # Box plot of hourly wage for marital status per gender
 boxplot_married_gender <- ggplot(dt, aes(x = factor(marital_status), y = w, fill = factor(gender), color=factor(gender))) +
@@ -248,16 +284,17 @@ boxplot_married_gender <- ggplot(dt, aes(x = factor(marital_status), y = w, fill
   stat_boxplot(geom = "errorbar", width = 0.8, size = 0.3, na.rm=T)+
   scale_color_viridis(option = "D", discrete = TRUE) +
   scale_fill_viridis(option = "D", discrete = TRUE) +
-  labs(x = "Working Sector",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
+  labs(x = "Married",y = "Wage per Hour in USD", color = "Gender", fill = "Gender") + 
   theme_bw() +
-  theme(legend.position = "top")
+  theme(legend.position = "top") +
+  scale_x_discrete(labels = c("No", "Yes"))
 
 
 
 
 scatter_age <- ggplot( dt , aes(x = age, y = w)) +
     geom_point(size=0.5,alpha=0.6, na.rm = T, color = "#440154") +
-    geom_smooth(method="loess" , formula = y ~ x , na.rm = T )+
+    geom_smooth(method="loess" , formula = y ~ x , na.rm = T, color = "#fde725" )+
     theme_bw() +
     scale_color_viridis(option = "D", discrete = TRUE) +
     scale_fill_viridis(option = "D", discrete = TRUE) +
@@ -266,7 +303,7 @@ scatter_age <- ggplot( dt , aes(x = age, y = w)) +
 
 scatter_edu <- ggplot( dt , aes(x = grade92, y = w)) +
   geom_point(size=0.9, alpha=0.8, na.rm = T, color = "#440154") +
-  geom_smooth(method="lm" , formula = y ~ x , na.rm = T)+
+  geom_smooth(method="lm" , formula = y ~ x , na.rm = T, color = "#fde725")+
   theme_bw() +
   scale_color_viridis(option = "D", discrete = TRUE) +
   scale_fill_viridis(option = "D", discrete = TRUE) +
