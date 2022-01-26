@@ -385,13 +385,16 @@ summary_table <- datasummary(
   (`Weekly hours worked` = uhours) + 
   (`Earning per hour` = w) + 
   (`Female` = female) +
+  (`No degree` = no_degree) +  
+  (`Associate` = ed_associate) +
   (`BA Degree` = ed_BA) + 
   (`MA Degree` = ed_MA) + 
   (`Professional Degree` = ed_Profess) + 
   (`PhD` = ed_PhD) + 
   (`Age` = age) + 
   (`Work in Private Sector` = privt_sec) + 
-  (`Has child` = child) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), 
+  (`Has child` = child) +
+ (`Marital Status` = marital_status) ~ (Median + Mean + SD + Min + Max + P05 + P95 + N), 
   data = dt, 
   title = "Descriptive Summary Statistics" ) %>% 
   kable_styling(latex_options = c("HOLD_position","scale_down"))
@@ -403,10 +406,10 @@ summary_table <- datasummary(
 # Regressions
 # Simple Model one
 
-m1 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD)
-m2 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq)
-m3 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec, child)
-m4 <- as.formula(w ~ ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec + female * child)
+m1 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD)
+m2 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq)
+m3 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec, child, marital_status)
+m4 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + marital_status + ed_associate *female  + emale * ed_BA +  + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec + female * child)
 
 reg1 <- feols(m1, data = dt, vcov = 'hetero')
 reg2 <- feols(m2, data = dt, vcov = 'hetero')
