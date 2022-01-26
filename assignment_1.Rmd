@@ -362,10 +362,11 @@ scatter_edu <- ggplot( dt[grade92 != 38] , aes(x = grade92, y = w)) +
 
 ### 1.Introduction
 
-This assignment presents earnings per hour of **this** occpuation for the ones who has more than associate degree or occupational /vocational 
-
+The purpose of this assignment is to build four predictive models using linear regression. The source of data for this purpose is CPS-earning data set which can be found [here](https://osf.io/g8p9j/). The chosen occupation for this project is _Human Resource worker_ with the census occupation code of _630_. 
 
 ### 2. Data
+
+
 
 ### 3. Regressions
 
@@ -408,8 +409,10 @@ summary_table <- datasummary(
 
 m1 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD)
 m2 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq)
-m3 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec, child, marital_status)
-m4 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + marital_status + ed_associate *female  + emale * ed_BA +  + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec + female * child)
+
+m3 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + child + marital_status)
+
+m4 <- as.formula(w ~ ed_associate + ed_BA + ed_MA + ed_Profess + ed_PhD + age + agesq + female + privt_sec + marital_status + ed_associate *female  + female * ed_BA +  + female * ed_MA + female * ed_Profess + female * ed_PhD + female * age + female * agesq + female * privt_sec + female * child)
 
 reg1 <- feols(m1, data = dt, vcov = 'hetero')
 reg2 <- feols(m2, data = dt, vcov = 'hetero')
@@ -425,6 +428,8 @@ reg4 <- feols(m4, data = dt, vcov = 'hetero')
 # Adding variables names
 variable_names <- c('(Intercept)' = 'Intercept',
                     'w' = 'Hourly wage',
+                    'ed_associate' = 'Associate',
+                    'ed_BA' = 'BA Degree',
                     'ed_MA' = 'MA Degree',
                     'ed_Profess' = 'Professional Degree',
                     'ed_PhD' = 'PhD',
@@ -432,18 +437,19 @@ variable_names <- c('(Intercept)' = 'Intercept',
                     'agesq' = 'Age Squared',
                     'female' = 'Female',
                     'privt_sec' = 'Private Sector',
-                    'child' = 'Has Child')
+                    'child' = 'Has Child',
+                    'marital_status' = 'Married')
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # evaluation of the models: using all the sample
 
 fitstat_register("k", function(x){length( x$coefficients ) - 1}, "No. Variables")
 
 etable( 'M1' = reg1 , 'M2' = reg2 , 'M3' = reg3 , 'M4' = reg4 , 
-        dict = variable_names,
-        fitstat = c('aic','bic','rmse','r2','n','k') )
+        dict = variable_names, title = 'Regression Models for Earning per hour',
+        fitstat = c('aic','bic','rmse','r2','n','k') ) %>% kbl(booktabs = T) %>% kable_styling(full_width = T)
 
 
 ```
@@ -511,7 +517,7 @@ m_comp <- tibble( model = models ,
 
 ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
   geom_point(color='red',size=2) +
-  geom_line(color='blue',size=0.5)+
+  geom_line(color= "#440154",size=0.5)+
   labs(x='Number of explanatory variables',y='Averaged RMSE on test samples',
        title='Prediction performance and model compexity') +
   theme_bw()
@@ -519,17 +525,6 @@ ggplot( m_comp , aes( x = complexity , y = RMSE ) ) +
 
 
 
-```{r}
-# Select Model 3
-
-###############
-# 5C) Prediction
-#   Compare model1 and model3 to predict our the hourly wage
-
-
-dt <- dt %>% select(grade92, age, female, w, ed_BA, ed_MA, ed_Profess, ed_PhD, agesq, privt_sec, child)
-
-```
 
 
 \newpage
