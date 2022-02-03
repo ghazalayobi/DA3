@@ -88,6 +88,18 @@ rm(df,drops)
 df <- read.csv(paste0(data_in,"airbnb_ny_listing.csv"),fileEncoding="UTF-8")
 
 
+#drop broken lines - where id is not a character of numbers
+df$junk<-grepl("[[:alpha:]]", df$id)
+df<-subset(df,df$junk==FALSE)
+df$junk <- NULL
+
+#display the class and type of each columns
+sapply(df, class)
+sapply(df, typeof)
+
+
+#-----------------------------------------------------------------------------
+
 # remove percentage signs
 for (perc in c("host_response_rate","host_acceptance_rate")){
   df[[perc]]<-gsub("%","",as.character(df[[perc]]))
@@ -140,7 +152,7 @@ df <- df[ , !(names(df) %in% drops)]
 
 # create data frame of the amenities
 
-amts <- df %>% select(-(1:49))
+amts <- df %>% select(-(1:50))
 
 
 # delete spaces in the beginning and end of the column names, and transfer all to lower case
@@ -194,9 +206,8 @@ selected <- sapply(names(amts), function(x){
 amenities <- amts[,selected]
 names(amenities)
 
-amenities <- amenities %>% select(1:110)
 
-
+amenities <- amenities %>% select((1:110))
 
 
 df <- df %>% select((1:49))
