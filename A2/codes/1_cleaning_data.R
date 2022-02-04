@@ -61,13 +61,11 @@ drops <- c("name",
            "interaction", 
            "house_rules", 
            "host_about", 
-           "host_response_time", 
            "summary", 
            "space", 
            "host_location",
            "host_total_listings_count",
            "bathrooms", # Contains NA values
-           "neighbourhood_group_cleansed",
            "minimum_minimum_nights","maximum_maximum_nights","minimum_maximum_nights",
            "maximum_minimum_nights","minimum_nights_avg_ntm","maximum_nights_avg_ntm", 
            "number_of_reviews_ltm", "is_business_travel_ready", 
@@ -92,11 +90,6 @@ df <- read.csv(paste0(data_in,"airbnb_ny_listing.csv"),fileEncoding="UTF-8")
 df$junk<-grepl("[[:alpha:]]", df$id)
 df<-subset(df,df$junk==FALSE)
 df$junk <- NULL
-
-#display the class and type of each columns
-sapply(df, class)
-sapply(df, typeof)
-
 
 #-----------------------------------------------------------------------------
 
@@ -152,7 +145,7 @@ df <- df[ , !(names(df) %in% drops)]
 
 # create data frame of the amenities
 
-amts <- df %>% select(-(1:50))
+amts <- df %>% select(-(1:51))
 
 
 # delete spaces in the beginning and end of the column names, and transfer all to lower case
@@ -210,7 +203,7 @@ names(amenities)
 amenities <- amenities %>% select((1:110))
 
 
-df <- df %>% select((1:49))
+df <- df %>% select((1:50))
 
 df <- cbind(df, amenities)
 
