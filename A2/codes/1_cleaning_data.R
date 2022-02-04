@@ -78,20 +78,20 @@ df <- df[ , !(names(df) %in% drops)]
 
 
 
-write.csv(df,file=paste0(data_in,"airbnb_ny_listing.csv"))
+write.csv(df,file=paste0(data_in,"airbnb_ny_listing_v1.csv"))
 rm(df,drops)
 #--------------------------------------------------------------------------------
 
-# Import data
-df <- read.csv(paste0(data_in,"airbnb_ny_listing.csv"),fileEncoding="UTF-8")
+# Import data version 1
+df <- read.csv(paste0(data_in,"airbnb_ny_listing_v1.csv"),fileEncoding="UTF-8")
 
 
 #drop broken lines - where id is not a character of numbers
-df$junk<-grepl("[[:alpha:]]", df$id)
+df$junk <- grepl("[[:alpha:]]", df$id)
 df<-subset(df,df$junk==FALSE)
 df$junk <- NULL
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 # remove percentage signs
 for (perc in c("host_response_rate","host_acceptance_rate")){
@@ -141,14 +141,14 @@ df<-cbind(df,as.data.frame(do.call(rbind, lapply(lapply(df$amenities, factor, le
 drops <- c("amenities","translation missing: en.hosting_amenity_49",
            "translation missing: en.hosting_amenity_50")
 df <- df[ , !(names(df) %in% drops)]
-
+df <- df[ , !(names(df) %in% "license")]
 
 # create data frame of the amenities
 
-amts <- df %>% select(-(1:51))
+amts <- df %>% select(-(1:50))
 
 
-# delete spaces in the beginning and end of the column names, and transfer all to lower case
+# deleting spaces in the beginning and at the end of the column, and transfer all to lower case
 names(amts) <- gsub(" ","_", tolower(trimws(names(amts))))
 names(df) <- tolower(names(df))
 
@@ -178,13 +178,13 @@ column_names <- c( "kitchen", "stove|gas_stove", "oven|steel_oven|stainless_stee
 
 # function to merge columns with the same key word in them
 for (i in column_names) {
-  tdf <- amts %>% select(matches(i))
+  xdf <- amts %>% select(matches(i))
   
-  amts$new_col <- ifelse(rowSums(tdf)>0, 1, 0)
+  amts$new_col <- ifelse(rowSums(xdf)>0, 1, 0)
   
   names(amts)[names(amts) == "new_col"] <- paste0("have_", i)
   
-  amts <- amts %>% select(-colnames(tdf)) 
+  amts <- amts %>% select(-colnames(xdf)) 
   
 } 
 
@@ -196,19 +196,20 @@ selected <- sapply(names(amts), function(x){
   } else { return(FALSE) }
 })
 
+# taking only selected or grouped columns
 amenities <- amts[,selected]
-names(amenities)
+names(amenities) # checking names of columns
 
-
+# taking only the first columns
 amenities <- amenities %>% select((1:110))
 
-
+# selecting the first columns
 df <- df %>% select((1:50))
 
 df <- cbind(df, amenities)
 
 #write csv
-write.csv(df,file=paste0(data_out,"airbnb_ny_workfile.csv"))
+write.csv(df,file=paste0(data_out,"airbnb_ny_workfile_v1.csv"))
 
 
 
