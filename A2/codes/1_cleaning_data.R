@@ -76,23 +76,7 @@ drops <- c("name",
 
 df <- df[ , !(names(df) %in% drops)]
 
-
-
-write.csv(df,file=paste0(data_in,"airbnb_ny_listing_v1.csv"))
-rm(df,drops)
-#--------------------------------------------------------------------------------
-
-# Import data version 1
-df <- read.csv(paste0(data_in,"airbnb_ny_listing_v1.csv"),fileEncoding="UTF-8")
-
-
-#drop broken lines - where id is not a character of numbers
-df$junk <- grepl("[[:alpha:]]", df$id)
-df<-subset(df,df$junk==FALSE)
-df$junk <- NULL
-
-#-------------------------------------------------------------------------------
-
+# Formatting columns
 # remove percentage signs
 for (perc in c("host_response_rate","host_acceptance_rate")){
   df[[perc]]<-gsub("%","",as.character(df[[perc]]))
@@ -116,6 +100,7 @@ df$price <- as.numeric(df$price)
 df$amenities <- as.character(df$amenities)
 
 #Amenities--------------------------------------------------------------------------
+# Cleaning amenities
 
 df$amenities<-gsub("\\[","",df$amenities)
 df$amenities<-gsub("\\]","",df$amenities)
@@ -125,14 +110,7 @@ df$amenities<-gsub('2014',"", as.character(df$amenities)) #removing \u2014
 df$amenities<-gsub('2019s',"", as.character(df$amenities)) #removing \u2019s
 df$amenities<-gsub('2019',"", as.character(df$amenities)) # removing \u2019
 df$amenities<-gsub('\\\\u',"", as.character(df$amenities)) # removing \u
-df$amenities<-gsub('Kitchen Aid refrigerator',"refrigerator", as.character(df$amenities))
-df$amenities<-gsub(' KitchenAid stainless steel gas stove',"stove", as.character(df$amenities))
-df$amenities<-gsub(' Kitchenaid stainless steel oven',"oven", as.character(df$amenities))
-df$amenities<-gsub(' kitchenaid stainless steel oven',"oven", as.character(df$amenities))
-
-
 df$amenities <- df$amenities<-as.list(strsplit(df$amenities, ","))
-
 
 #define levels and dummies 
 levs <- levels(factor(unlist(df$amenities)))
@@ -144,8 +122,7 @@ df <- df[ , !(names(df) %in% drops)]
 df <- df[ , !(names(df) %in% "license")]
 
 # create data frame of the amenities
-
-amts <- df %>% select(-(1:50))
+amts <- df %>% select(-(1:49))
 
 
 # deleting spaces in the beginning and at the end of the column, and transfer all to lower case
@@ -153,26 +130,29 @@ names(amts) <- gsub(" ","_", tolower(trimws(names(amts))))
 names(df) <- tolower(names(df))
 
 
+# look at the column names we have
+levs <- sort(names(amts))
+
+# merge all the columns with the same column name
+amts <- as.data.frame(do.call(cbind, by(t(amts), INDICES= names(amts),FUN=colSums)))
+
 
 # list of key words Key words
-
-column_names <- c( "kitchen", "stove|gas_stove", "oven|steel_oven|stainless_steel_oven", 
-                   "frige|refrigerator|mini_fridge",
-                   "coffee|nespresso_machine|keurig_coffee_machine", 
+column_names <- c( "kitchen", "stove", "oven", 
+                   "refrigerator",
+                   "coffee|nespresso_machine|keurig_coffee_machine", "grill",
                    "microwave",
-          "wifi|internet|ethernet_connection", "tv|hdtv|cable_tv|v_with_standard_cable", "sound_ystem|speaker",
+          "wifi|internet|ethernet_connection", "tv", "sound_ystem",
           "toiletries", "shampoo|conditioner", "hair_dryer", "washer", "dryer", "iron", "hot_water", 
           "heating|heated_floor|fireplace|central_heating", "air_conditioning|fan|ac|central_air_conditioning", 
-          "breakfast", "fitness|.*gym.*",  
+          "breakfast", "fitness|gym",  
           "children|baby|crib", "smoking", 
           "long_term_stays_allowed",
           "free.*on premises", "free.*street", "paid.*off premises|self-parking",
           "clothing_storage|clothing_storage.*",
-          "smoke_alarm|carbon_monoxide_alarm"
+          "smoke_alarm"
           
 )
-
-
 
 
 
@@ -188,6 +168,8 @@ for (i in column_names) {
   
 } 
 
+
+
 # keep only columns where the percentage of 1s is at least 1% and at most 99%
 selected <- sapply(names(amts), function(x){
   ratio <- sum(amts[[x]])/nrow(amts)*100
@@ -200,6 +182,7 @@ selected <- sapply(names(amts), function(x){
 amenities <- amts[,selected]
 names(amenities) # checking names of columns
 
+
 # taking only the first columns
 amenities <- amenities %>% select((1:110))
 
@@ -210,11 +193,5 @@ df <- cbind(df, amenities)
 
 #write csv
 write.csv(df,file=paste0(data_out,"airbnb_ny_workfile_v1.csv"))
-
-
-
-
-
-
 
 
