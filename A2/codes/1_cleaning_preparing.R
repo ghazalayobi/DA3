@@ -25,10 +25,12 @@ library(data.table)
 
 
 source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/da_helper_functions.R")
-#source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/theme_bg.R")
+source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/theme_bg.R")
 
 
 getwd()
+
+
 
 setwd("/Users/ghazalayobi/DA3/A2")
 
@@ -278,13 +280,19 @@ df <- df %>%
 df <- df %>% 
   drop_na(f_host_response_time)
 
-
+# where do we have missing variables?
+to_filter <- sort(sapply(df, function(x) sum(is.na(x)/nrow(df)*100)))
+to_filter[to_filter > 0]
 
 #-----------------------------------------------
 # Numeric Variables
 
+df$price <- as.numeric(df$price)
+describe(df$price)
+
 # Create Numerical variables
 # imputing 1 percent to the missing host response rate
+
 df <- df %>%
   mutate(p_host_response_rate = ifelse(is.na(host_response_rate),1, host_response_rate ))
 df$p_host_response_rate <- df$p_host_response_rate %>% replace(df$p_host_response_rate == "N/A", 1)
