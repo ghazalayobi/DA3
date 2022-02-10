@@ -894,7 +894,6 @@ level_vs_pred
 ```
 
 
-
 ```{r echo=FALSE, message=FALSE, warning=FALSE, out.width='50%', fig.height=3.5}
 pdp_n_acc_plot
 
@@ -902,4 +901,4 @@ level_vs_pred
 ```
 
 ## Conclusion
-The goal of this report was to find a better model to predict Airbnb prices in New York for a small to mid-size apartments. Five models were illustrated to compare and contrast across models performance. GBM resulted to be the best model by 65.38 USD RMSE, besides this GBM model also shows better performance in holdout set with 64.38 USD RMSE. The second best model was basic Random Forest which has highlights meaningful characteristics about the nature of Airbnb apartments in New York. Key price drivers based on post prediction diagnostics are the number of bathroom, number of accommodates, and availability of amenities such as washer and gym. partial dependence plot also illustrated that the model better predicts Manhattan neighbourhood. 
+The goal of this report was to find a better model to predict Airbnb prices in New York for a small to mid-size apartments. Five models were illustrated to compare and contrast across models performance. GBM resulted to be the best model by 65.38 USD RMSE, besides this GBM model also shows better performance in holdout set with 64.38 USD RMSE. The second best model was basic Random Forest which has highlights meaningful characteristics about the nature of Airbnb apartments in New York. Key price drivers based on post prediction diagnostics are the number of bathroom, number of accommodates, and availability of amenities such as washer and gym. partial dependence plot also illustrated that the model better predicts Manhattan neighborhood. 
