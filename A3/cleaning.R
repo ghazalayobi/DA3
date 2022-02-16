@@ -1,8 +1,8 @@
 ################################
-##         Ghazal Ayobi       ##
-##        Shah Ali Gardezi    ##
+##       M�sz�ros Vikt�ria    ##
+##        Serfozo Attila      ##
 ##        Data Analysis 3     ##
-##         Assignment 3       ##   
+##         Assignment 2       ##   
 ##         Preparation        ##
 ################################
 
@@ -12,12 +12,10 @@
 rm(list=ls())
 
 # Please change dir to your own and unzip bisnode firm panel data in data/raw folder
-getwd()
-
-dir <- "/Users/ghazalayobi/DA3/A3/"
 
 # Import libraries
 library(tidyverse)
+
 
 library(haven)
 library(glmnet)
@@ -40,15 +38,15 @@ library(rpart)
 library(partykit)
 library(rpart.plot)
 
-# load functions
+getwd()
+
+dir <- "/Users/ghazalayobi/DA3/A3/"
+
 source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/theme_bg.R")
 source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/da_helper_functions.R")
 
 data_in <- paste0(dir,"data/raw/")
 data_out <- paste0(dir,"data/clean/")
-
-
-# Import Data -------------------------------------------------------------
 
 data <- read_csv(paste0(data_in,"cs_bisnode_panel.csv"))
 
@@ -62,11 +60,12 @@ sort(to_filter[to_filter > 0])
 # with full year balance sheet indicating they are not new firms
 data <- data %>%
   select(-c(COGS, finished_prod, net_dom_sales, net_exp_sales, wages, D)) %>%
-  filter(year >= 2011,
-         year <= 2014,
-         balsheet_length >= 360)
+  filter(year >= 2010,
+         year <= 2015)
 
-# Label Engineering -------------------------------------------------------
+###########################################################
+# label engineering
+###########################################################
 
 # generate status_alive to check the firm is still alive
 data  <- data %>%
@@ -94,12 +93,9 @@ data <- data %>%
   filter(!(sales_mil > 10)) %>%
   filter(!(sales_mil < 0.001))
 
-# save backup
-df <- data
-data <- df
 
 # Keep only firms with data for the 3 years
-data <- data %>% group_by(comp_id) %>% filter(n() == 4)
+data <- data %>% group_by(comp_id) %>% filter(n() == 6)
 
 # Change in sales
 data <- data %>%
@@ -136,7 +132,7 @@ data <- data %>%
 data <- data %>%
   filter(year == 2012,
          cagr_sales != is.na(cagr_sales),
-         cagr_sales <= 3000)
+         cagr_sales <= 200)
 
 describe(data$cagr_sales)
 describe(data$comp_id)
@@ -153,7 +149,7 @@ ggplot(data=data, aes(x=cagr_sales)) +
 # Create fast growth dummy
 data <- data %>%
   group_by(comp_id) %>%
-  mutate(fast_growth = (cagr_sales > 30) %>%
+  mutate(fast_growth = (cagr_sales > 40) %>%
            as.numeric(.)) %>%
   ungroup()
 
@@ -162,9 +158,6 @@ describe(data$fast_growth)
 data <- data %>%
   mutate(age = (year - founded_year))
 
-# save backup
-df <- data
-data <- df
 
 
 ###########################################################
@@ -328,3 +321,4 @@ ggplot(data = data, aes(x=inc_bef_tax_pl, y=as.numeric(fast_growth))) +
 
 write_csv(data,paste0(data_out,"bisnode_firms_clean.csv"))
 write_rds(data,paste0(data_out,"bisnode_firms_clean.rds"))
+

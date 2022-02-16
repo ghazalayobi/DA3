@@ -53,7 +53,7 @@ data_out <- data_in
 output <- paste0(path,"output/")
 create_output_if_doesnt_exist(output)
 
-
+#readRDC(gzcon(url("")))
 ########################################################
 #                                                      #
 #                       PART I                         #
@@ -147,7 +147,7 @@ ggplot(data=data, aes(x=sales_mil_log)) +
 
 # separate datasets  (train and holdout) -------------------------------------------------------
 
-set.seed(2021)
+set.seed(123456)
 
 train_indices <- as.integer(createDataPartition(data$fast_growth, p = 0.8, list = FALSE))
 data_train <- data[train_indices, ]
@@ -161,7 +161,7 @@ Hmisc::describe(data_train$fast_growth_f)
 Hmisc::describe(data_holdout
                 $fast_growth_f)
 
-# The proportion of fast growth firms are really similar in all the sets, around 16%
+# The proportion of fast growth firms are really similar in all the sets, around 10%
 
 
 # 5 fold cross-validation ----------------------------------------------------------------------
@@ -188,7 +188,7 @@ for (model_name in names(logit_model_vars)) {
   
   features <- logit_model_vars[[model_name]]
   
-  set.seed(2021)
+  set.seed(123456)
   glm_model <- train(
     formula(paste0("fast_growth_f ~", paste0(features, collapse = " + "))),
     method = "glm",
@@ -210,7 +210,7 @@ for (model_name in names(logit_model_vars)) {
 lambda <- 10^seq(-1, -4, length = 10)
 grid <- expand.grid("alpha" = 1, lambda = lambda)
 
-set.seed(2021)
+set.seed(123456)
 system.time({
   logit_lasso_model <- train(
     formula(paste0("fast_growth_f ~", paste0(logitvars, collapse = " + "))),
@@ -239,7 +239,7 @@ CV_RMSE_folds[["LASSO"]] <- logit_lasso_model$resample[,c("Resample", "RMSE")]
 #################################
 
 # 5 fold cross-validation
-
+set.seed(123456)
 train_control <- trainControl(
   method = "cv",
   n = 5,
@@ -256,7 +256,7 @@ tune_grid <- expand.grid(
 )
 
 # build rf model
-set.seed(2021)
+set.seed(123456)
 rf_model_p <- train(
   formula(paste0("fast_growth_f ~ ", paste0(rfvars , collapse = " + "))),
   method = "ranger",
