@@ -206,7 +206,7 @@ for (model_name in names(logit_model_vars)) {
 #################################
 #        LASSO  models          #
 #################################
-
+set.seed(123456)
 lambda <- 10^seq(-1, -4, length = 10)
 grid <- expand.grid("alpha" = 1, lambda = lambda)
 
@@ -330,6 +330,7 @@ logit_summary1 <- data.frame("Number of predictors" = unlist(nvars),
 #################################
 
 # Get average RMSE and AUC ------------------------------------
+set.seed(123456)
 auc <- list()
 for (fold in c("Fold1", "Fold2", "Fold3", "Fold4", "Fold5")) {
   cv_fold <-
@@ -440,7 +441,7 @@ cm2
 # Introduce loss function
 # relative cost of of a false negative classification (as compared with a false positive classification)
 FP=1
-FN=3
+FN=2
 cost = FN/FP
 # the prevalence, or the proportion of cases in the population (n.cases/(n.controls+n.cases))
 prevelance = sum(data_train$fast_growth)/length(data_train$fast_growth)
@@ -653,7 +654,7 @@ train_control <- trainControl(
 )
 train_control$verboseIter <- TRUE
 
-set.seed(2021)
+set.seed(123456)
 rf_model_f <- train(
   formula(paste0("fast_growth_f ~ ", paste0(rfvars , collapse = " + "))),
   method = "ranger",

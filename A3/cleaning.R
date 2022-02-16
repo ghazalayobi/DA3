@@ -1,9 +1,8 @@
 ################################
-##       M�sz�ros Vikt�ria    ##
-##        Serfozo Attila      ##
-##        Data Analysis 3     ##
-##         Assignment 2       ##   
-##         Preparation        ##
+##      Ghazal Ayobi          ##
+##     Shah Ali Gardezi       ##
+##     Data Analysis III      ##
+##      Assignment   III      ##   
 ################################
 
 
