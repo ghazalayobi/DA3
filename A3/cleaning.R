@@ -41,16 +41,15 @@ getwd()
 
 dir <- "/Users/ghazalayobi/DA3/A3/"
 
-source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/theme_bg.R")
-source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/da_helper_functions.R")
+#source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/theme_bg.R")
+#source("https://raw.githubusercontent.com/ghazalayobi/DA3/main/da_helper_functions.R")
 
 data_in <- paste0(dir,"data/raw/")
 data_out <- paste0(dir,"data/clean/")
 
 data <- read_csv(paste0(data_in,"cs_bisnode_panel.csv"))
 
-glimpse(data)
-skim(data)
+
 
 to_filter <- sapply(data, function(x) sum(is.na(x)))
 sort(to_filter[to_filter > 0])
@@ -138,17 +137,15 @@ describe(data$comp_id)
 
 ggplot(data=data, aes(x=cagr_sales)) +
   geom_histogram(aes(y = (..count..)/sum(..count..)), binwidth = 10, boundary=0,
-                 color = "black", fill = "deepskyblue4") +
+                 color = "white", fill = "#440154", alpha = 0.8) +
   coord_cartesian(xlim = c(-100, 200)) +
   labs(x = "CAGR growth",y = "Percent")+
-  #scale_y_continuous(expand = c(0.00,0.00),limits=c(0, 0.15), breaks = seq(0, 0.15, by = 0.03), labels = scales::percent_format(1)) +
-  #scale_x_continuous(expand = c(0.00,0.00),limits=c(0,500), breaks = seq(0,500, 50)) +
   theme_bw() 
 
 # Create fast growth dummy
 data <- data %>%
   group_by(comp_id) %>%
-  mutate(fast_growth = (cagr_sales > 40) %>%
+  mutate(fast_growth = (cagr_sales > 28) %>%
            as.numeric(.)) %>%
   ungroup()
 
@@ -156,7 +153,6 @@ describe(data$fast_growth)
 
 data <- data %>%
   mutate(age = (year - founded_year))
-
 
 
 ###########################################################
@@ -306,11 +302,11 @@ data <- data %>%
   mutate_at(vars(colnames(data)[sapply(data, is.factor)]), funs(fct_drop))
 
 ggplot(data = data, aes(x=inc_bef_tax_pl, y=as.numeric(fast_growth))) +
-  geom_point(size=2,  shape=20, stroke=2, fill="blue", color="blue") +
+  geom_point(size=2,  shape=20, stroke=2, fill="#440154", color="#440154") +
   geom_smooth(method="loess", se=F, colour="black", size=1.5, span=0.9) +
   labs(x = "Income before taxes",y = "Fast Growth distribution") +
   theme_bw() +
-  scale_x_continuous(limits = c(-1.5,1.5), breaks = seq(-1.5,1.5, 0.5))
+  scale_x_continuous(limits = c(-1.1,1.2), breaks = seq(-1.1,1.2, 0.3))
 
 
 

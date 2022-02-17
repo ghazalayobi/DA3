@@ -7,7 +7,7 @@
 #           Shah Ali Gardezi            #
 #                                       #
 #   Prediction on bisnode-firms data    #
-#          Service Industry             #
+#                                       #
 
 # ------------------------------------------------------------------------------------------------------
 #### SET UP
@@ -28,7 +28,7 @@ library(gmodels)
 library(lspline)
 library(sandwich)
 library(modelsummary)
-
+library(viridis)
 library(rattle)
 library(caret)
 library(pROC)
@@ -53,9 +53,14 @@ output <- paste0(path,"output/")
 create_output_if_doesnt_exist(output)
 
 data <- readRDS(paste0(data_in,"bisnode_firms_clean.rds"))
-data <- data %>% filter(ind2 > 40)
 
+data <- data %>% filter(ind2_cat == 55 | ind2_cat == 56)
+data <- data %>% filter(ind2 >= 55 | ind2 <= 56)
 
+levelx <- c(26, 27, 28, 28, 30, 33)
+data$ind2_cat <- droplevels(data$ind2_cat, levelx)
+unique(data$ind2)
+unique(data$ind2_cat)
 # Define variable sets ----------------------------------------------
 # (making sure we use ind2_cat, which is a factor)
 
@@ -133,13 +138,13 @@ kable(x = sum_table, format = "latex", digits = 3,
   cat(.,file= paste0(output,"AME_logit_X2.tex"))
 
 
-# baseline model is X4 (all vars, but no interactions) -------------------------------------------------------
+# baseline model is X3 (all vars, but no interactions) -------------------------------------------------------
 
-ols_model <- lm(formula(paste0("fast_growth ~", paste0(X4, collapse = " + "))),
+ols_model <- lm(formula(paste0("fast_growth ~", paste0(X3, collapse = " + "))),
                 data = data)
 summary(ols_model)
 
-glm_model <- glm(formula(paste0("fast_growth ~", paste0(X4, collapse = " + "))),
+glm_model <- glm(formula(paste0("fast_growth ~", paste0(X3, collapse = " + "))),
                  data = data, family = "binomial")
 summary(glm_model)
 
@@ -158,7 +163,7 @@ sum_table2 <- summary(glm_model) %>%
 kable(x = sum_table2, format = "latex", digits = 3,
       col.names = c("Variable", "Coefficient", "SE", "dx/dy"),
       caption = "Average Marginal Effects (dy/dx) for Logit Model") %>%
-  cat(.,file= paste0(output,"AME_logit_X4.tex"))
+  cat(.,file= paste0(output,"AME_logit_X3.tex"))
 
 
 # separate datasets -------------------------------------------------------
@@ -246,6 +251,48 @@ write.csv(lasso_coeffs, paste0(output, "lasso_logit_coeffs.csv"))
 CV_RMSE_folds[["LASSO"]] <- logit_lasso_model$resample[,c("Resample", "RMSE")]
 
 
+#################################
+#         Random forest         #
+#################################
+
+# 5 fold cross-validation
+set.seed(123456)
+train_control <- trainControl(
+  method = "cv",
+  n = 5,
+  classProbs = TRUE, # same as probability = TRUE in ranger
+  summaryFunction = twoClassSummaryExtended,
+  savePredictions = TRUE
+)
+train_control$verboseIter <- TRUE
+
+tune_grid <- expand.grid(
+  .mtry = c(5, 6, 7),
+  .splitrule = "gini",
+  .min.node.size = c(10, 15)
+)
+
+# build rf model
+set.seed(123456)
+rf_model_p <- train(
+  formula(paste0("fast_growth_f ~ ", paste0(rfvars , collapse = " + "))),
+  method = "ranger",
+  data = data_train,
+  tuneGrid = tune_grid,
+  trControl = train_control,
+  importance = "impurity"
+)
+
+rf_model_p$results
+
+saveRDS(rf_model_p, paste0(data_out, "rf_model_p.rds"))
+
+best_mtry <- rf_model_p$bestTune$mtry
+best_min_node_size <- rf_model_p$bestTune$min.node.size
+
+CV_RMSE_folds[["rf_p"]] <- rf_model_p$resample[,c("Resample", "RMSE")]
+
+
 #############################################x
 # PART I
 # No loss fn
@@ -295,6 +342,43 @@ kable(x = logit_summary1, format = "latex", booktabs=TRUE,  digits = 3, row.name
       linesep = "", col.names = c("Number of predictors","CV RMSE","CV AUC")) %>%
   cat(.,file= paste0(output, "logit_summary1.tex"))
 
+
+#################################
+#         Random forest         #
+#################################
+
+# Get average RMSE and AUC ------------------------------------
+set.seed(123456)
+auc <- list()
+for (fold in c("Fold1", "Fold2", "Fold3", "Fold4", "Fold5")) {
+  cv_fold <-
+    rf_model_p$pred %>%
+    filter(Resample == fold)
+  
+  roc_obj <- roc(cv_fold$obs, cv_fold$fast_growth)
+  auc[[fold]] <- as.numeric(roc_obj$auc)
+}
+CV_AUC_folds[["rf_p"]] <- data.frame("Resample" = names(auc),
+                                     "AUC" = unlist(auc))
+
+CV_RMSE[["rf_p"]] <- mean(CV_RMSE_folds[["rf_p"]]$RMSE)
+CV_AUC[["rf_p"]] <- mean(CV_AUC_folds[["rf_p"]]$AUC)
+
+
+rf_summary <- data.frame("CV RMSE" = unlist(CV_RMSE),
+                         "CV AUC" = unlist(CV_AUC))
+
+
+
+# FOR BEST MODEL -> RANDOM FOREST
+# discrete ROC (with thresholds in steps) on holdout -------------------------------------------------
+
+best_no_loss <- rf_model_p
+
+predicted_probabilities_holdout <- predict(best_no_loss, newdata = data_holdout, type = "prob")
+data_holdout[,"best_no_loss_pred"] <- predicted_probabilities_holdout[,"fast_growth"]
+
+
 # Take best model and estimate RMSE on holdout  -------------------------------------------
 
 best_logit_no_loss <- logit_models[["X3"]]
@@ -304,7 +388,7 @@ data_holdout[,"best_logit_no_loss_pred"] <- logit_predicted_probabilities_holdou
 RMSE(data_holdout[, "best_logit_no_loss_pred", drop=TRUE], data_holdout$fast_growth)
 
 # discrete ROC (with thresholds in steps) on holdout -------------------------------------------------
-thresholds <- seq(0.05, 0.75, by = 0.05)
+thresholds <- seq(0.05, 0.75, by = 0.025)
 
 cm <- list()
 true_positive_rates <- c()
@@ -326,7 +410,7 @@ tpr_fpr_for_thresholds <- tibble(
   "false_positive_rate" = false_positive_rates
 )
 
-discrete_roc_plot <- ggplot(
+ggplot(
   data = tpr_fpr_for_thresholds,
   aes(x = false_positive_rate, y = true_positive_rate, color = threshold)) +
   labs(x = "False positive rate (1 - Specificity)", y = "True positive rate (Sensitivity)") +
@@ -339,7 +423,7 @@ discrete_roc_plot <- ggplot(
   theme(legend.title = element_text(size = 4), 
         legend.text = element_text(size = 4),
         legend.key.size = unit(.4, "cm")) 
-discrete_roc_plot
+
 save_fig("ch17-figure-2a-roc-discrete", output, "small")
 
 # continuous ROC on holdout with best model (Logit 4) -------------------------------------------
@@ -409,6 +493,13 @@ cost = FN/FP
 # the prevalence, or the proportion of cases in the population (n.cases/(n.controls+n.cases))
 prevelance = sum(data_train$fast_growth)/length(data_train$fast_growth)
 
+
+#################3
+
+
+#lOGIT AND  LASSO #
+
+###############
 # Draw ROC Curve and find optimal threshold with loss function --------------------------
 
 best_tresholds <- list()
@@ -472,8 +563,8 @@ for (model_name in names(logit_cv_rocs)) {
 
 # Pick best model based on average expected loss ----------------------------------
 
-best_logit_with_loss <- logit_models[["X4"]]
-best_logit_optimal_treshold <- best_tresholds[["X4"]]
+best_logit_with_loss <- logit_models[["X3"]]
+best_logit_optimal_treshold <- best_tresholds[["X3"]]
 
 logit_predicted_probabilities_holdout <- predict(best_logit_with_loss, newdata = data_holdout, type = "prob")
 data_holdout[,"best_logit_with_loss_pred"] <- logit_predicted_probabilities_holdout[,"fast_growth"]
@@ -674,12 +765,12 @@ summary_results <- data.frame("Number of predictors" = unlist(nvars),
                               "CV threshold" = unlist(best_tresholds),
                               "CV expected Loss" = unlist(expected_loss))
 
-model_names <- c("Logit X1", "Logit X4",
+model_names <- c("Logit X1", "Logit X3",
                  "Logit LASSO","RF probability")
 summary_results <- summary_results %>%
-  filter(rownames(.) %in% c("X1", "X4", "LASSO", "rf_p"))
+  filter(rownames(.) %in% c("X1", "X3", "LASSO", "rf_p"))
 rownames(summary_results) <- model_names
-
+write_csv(summary_results, "sum_service.csv")
 kable(x = summary_results, format = "latex", booktabs=TRUE,  digits = 3, row.names = TRUE,
       linesep = "", col.names = c("Number of predictors", "CV RMSE", "CV AUC",
                                   "CV threshold", "CV expected Loss")) %>%
